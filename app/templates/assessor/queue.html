@@ -93,7 +93,7 @@
               <td class="govuk-table__cell">{{ application.id }}</td>
               <td class="govuk-table__cell">
                 {% if application.organisation %}
-                  {{ application.organisation.name }}
+                  {{ application.organisation.name | trim }}
                 {% else %}
                   <span class="govuk-hint">Unknown</span>
                 {% endif %}
