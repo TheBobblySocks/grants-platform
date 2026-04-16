@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}You do not have access to this page{% endblock %}
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <h1 class="govuk-heading-xl">You do not have access to this page</h1>
+      <p class="govuk-body">
+        This area of the grants platform is only available to users with a
+        different role. If you think you should have access, contact your
+        administrator.
+      </p>
+      <p class="govuk-body">
+        <a class="govuk-link" href="{{ url_for('public.index') }}">Go to the homepage</a>
+      </p>
+    </div>
+  </div>
+{% endblock %}

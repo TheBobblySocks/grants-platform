@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% from 'govuk_frontend_jinja/components/tag/macro.html' import govukTag %}
+{% from 'govuk_frontend_jinja/components/button/macro.html' import govukButton %}
+
+{% block title %}Your applications{% endblock %}
+
+{% set STATUS_TAG_CLASSES = {
+  "draft":         "govuk-tag--blue",
+  "submitted":     "govuk-tag--purple",
+  "under_review":  "govuk-tag--yellow",
+  "approved":      "govuk-tag--green",
+  "rejected":      "govuk-tag--red"
+} %}
+
+{% set STATUS_LABELS = {
+  "draft":         "Draft",
+  "submitted":     "Submitted",
+  "under_review":  "Under review",
+  "approved":      "Approved",
+  "rejected":      "Not funded"
+} %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% include "applicant/_flash.html" %}
+
+      <h1 class="govuk-heading-xl">Your applications</h1>
+      <p class="govuk-body-l">
+        Signed in as <strong>{{ current_user.email }}</strong>
+        {% if current_user.organisation %}
+          for <strong>{{ current_user.organisation.name }}</strong>
+        {% endif %}.
+      </p>
+
+      <form method="post" action="{{ url_for('auth.logout') }}" class="govuk-!-margin-bottom-6">
+        {{ logout_form.hidden_tag() }}
+        {{ govukButton({
+          "text": "Sign out",
+          "classes": "govuk-button--secondary"
+        }) }}
+      </form>
+
+      <h2 class="govuk-heading-l">Applications in progress</h2>
+
+      {% if applications %}
+        <table class="govuk-table" data-testid="applications-table">
+          <caption class="govuk-table__caption govuk-visually-hidden">Your grant applications</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Grant</th>
+              <th scope="col" class="govuk-table__header">Status</th>
+              <th scope="col" class="govuk-table__header">Last updated</th>
+              <th scope="col" class="govuk-table__header">
+                <span class="govuk-visually-hidden">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for app in applications %}
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">
+                  <strong>{{ app.grant.name }}</strong>
+                </td>
+                <td class="govuk-table__cell">
+                  {{ govukTag({
+                    "text": STATUS_LABELS.get(app.status.value, app.status.value),
+                    "classes": STATUS_TAG_CLASSES.get(app.status.value, "")
+                  }) }}
+                </td>
+                <td class="govuk-table__cell">
+                  {{ app.updated_at.strftime('%-d %B %Y') }}
+                </td>
+                <td class="govuk-table__cell">
+                  {% if app.status.value == "draft" %}
+                    <a class="govuk-link" href="{{ url_for('applicant.start', grant_slug=app.grant.slug) }}">
+                      Continue<span class="govuk-visually-hidden"> application for {{ app.grant.name }}</span>
+                    </a>
+                  {% else %}
+                    <a class="govuk-link" href="{{ url_for('applicant.review', app_id=app.id) }}">
+                      View<span class="govuk-visually-hidden"> application for {{ app.grant.name }}</span>
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="govuk-body" data-testid="no-applications">
+          You haven't started an application yet. Choose a grant below to apply.
+        </p>
+      {% endif %}
+
+      <h2 class="govuk-heading-l govuk-!-margin-top-9">Grants open for applications</h2>
+
+      {% if available_grants %}
+        <ul class="govuk-list" data-testid="available-grants">
+          {% for grant in available_grants %}
+            <li class="govuk-!-margin-bottom-6">
+              <h3 class="govuk-heading-m govuk-!-margin-bottom-1">{{ grant.name }}</h3>
+              {% if grant.summary %}
+                <p class="govuk-body">{{ grant.summary }}</p>
+              {% endif %}
+              <form method="get" action="{{ url_for('applicant.start', grant_slug=grant.slug) }}" class="govuk-!-margin-top-2">
+                {# GET — safe to revisit / bookmark. No CSRF token needed. #}
+                {{ govukButton({
+                  "text": "Start application",
+                  "attributes": {"data-testid": "start-" ~ grant.slug}
+                }) }}
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="govuk-body">
+          There are no further open grants to apply for at the moment.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

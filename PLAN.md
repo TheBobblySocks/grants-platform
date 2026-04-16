@@ -160,11 +160,11 @@ One applicant can register, open the EHCF application, fill one page, save,
 and log back in to see their draft. One assessor can log in and see the empty
 queue. No scoring yet, no uploads, no eligibility gate.
 
-- P1.1 Auth: register / login / logout (Flask-Login, password hashing)
-- P1.2 Role gating middleware (applicant vs assessor)
-- P1.3 Form runner v0: render one page from JSON, validate required fields, save `answers_json` draft
-- P1.4 Applicant dashboard: list my applications + their status
-- P1.5 Assessor queue skeleton: list of submitted applications (empty for now)
+- [x] P1.1 Auth: register / login / logout (Flask-Login, password hashing) — Stream A
+- [x] P1.2 Role gating middleware (applicant vs assessor) — Stream A
+- P1.3 Form runner v0: render one page from JSON, validate required fields, save `answers_json` draft — Stream B
+- [x] P1.4 Applicant dashboard: list my applications + their status — Stream A
+- P1.5 Assessor queue skeleton: list of submitted applications (empty for now) — Stream C
 
 Parallelisable once P0 lands:
 - Stream A (Auth + dashboards): P1.1, P1.2, P1.4, P1.5
@@ -175,11 +175,11 @@ correct pages and a draft round-trips.
 
 ### Phase 2 — Applicant end-to-end
 
-- P2.1 Multi-page form runner (next/back, page-level validation, resume where left off)
+- [~] P2.1 Multi-page form runner (next/back, page-level validation, resume where left off) — Stream A wrapper routes done (form_page / save_page); Stream B still owns schema rendering in `forms/page.html`
 - P2.2 Eligibility pre-check page (reads rules from `grants.config_json`)
 - P2.3 Document uploads to local filesystem, linked to the application
-- P2.4 Review page (read-only summary of all answers + docs)
-- P2.5 Submit action: locks answers, sets `submitted_at`, transitions status
+- [x] P2.4 Review page (read-only summary of all answers + docs) — Stream A (uses a temporary `applicant/_inline_summary.html` until Stream B ships the shared `forms/summary.html` partial)
+- [x] P2.5 Submit action: locks answers, sets `submitted_at`, transitions status — Stream A
 
 Parallelisable:
 - Stream A (Form runner depth): P2.1, P2.4, P2.5

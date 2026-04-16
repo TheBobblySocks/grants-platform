@@ -1,0 +1,65 @@
+{#
+  Stream-A-scoped interim summary partial.
+
+  Renders a read-only "check your answers" table for the current application.
+  This is a deliberate temporary duplicate of the Stream B-owned
+  ``templates/forms/summary.html`` partial: when Stream B ships its final
+  version, Stream A swaps the include in ``applicant/review.html`` over to
+  it and deletes this file.
+
+  Context (same as Stream B's contract):
+    schema     — form schema dict (has ``pages``, each with ``fields``)
+    answers    — ``{page_id: {field_id: value}}``
+    documents  — iterable of Document models (from uploads.list_documents)
+#}
+{% from 'govuk_frontend_jinja/components/summary-list/macro.html' import govukSummaryList %}
+
+<div data-testid="answers-summary">
+  {% for page in schema.pages %}
+    <h2 class="govuk-heading-l govuk-!-margin-top-6">{{ page.title }}</h2>
+    {% set page_answers = answers.get(page.id) or {} %}
+    {% set rows = [] %}
+    {% for field in page.fields %}
+      {% set raw = page_answers.get(field.id) %}
+      {% if raw is none or raw == "" or raw == [] %}
+        {% set display = "Not answered" %}
+      {% elif field.type == "radio" or field.type == "select" %}
+        {% set display = raw %}
+        {% for option in field.options or [] %}
+          {% if option.value == raw %}{% set display = option.label %}{% endif %}
+        {% endfor %}
+      {% elif field.type == "checkbox" and not field.options %}
+        {% set display = "Yes" if raw else "No" %}
+      {% elif field.type == "checkbox" %}
+        {% set display = raw | join(", ") if raw is iterable and raw is not string else raw %}
+      {% elif field.type == "currency" %}
+        {% set display = "£" ~ raw %}
+      {% else %}
+        {% set display = raw %}
+      {% endif %}
+      {% set _ = rows.append({
+        "key": {"text": field.label},
+        "value": {"text": display},
+        "actions": {
+          "items": [{
+            "href": url_for('applicant.form_page', app_id=application.id, page_id=page.id),
+            "text": "Change",
+            "visuallyHiddenText": field.label
+          }]
+        } if application.status.value == "draft" else {}
+      }) %}
+    {% endfor %}
+    {{ govukSummaryList({"rows": rows}) }}
+  {% endfor %}
+
+  <h2 class="govuk-heading-l govuk-!-margin-top-6">Supporting documents</h2>
+  {% if documents %}
+    <ul class="govuk-list govuk-list--bullet">
+      {% for doc in documents %}
+        <li>{{ doc.kind }} — {{ doc.filename }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="govuk-body govuk-hint">No documents uploaded yet.</p>
+  {% endif %}
+</div>

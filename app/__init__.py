@@ -75,6 +75,10 @@ def _register_blueprints(app: Flask) -> None:
 def _register_error_handlers(app: Flask) -> None:
     from flask import render_template
 
+    @app.errorhandler(403)
+    def _forbidden(_err):
+        return render_template("errors/403.html"), 403
+
     @app.errorhandler(404)
     def _not_found(_err):
         return render_template("errors/404.html"), 404

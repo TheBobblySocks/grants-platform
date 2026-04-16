@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% from 'govuk_frontend_jinja/components/error-summary/macro.html' import govukErrorSummary %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% include "applicant/_flash.html" %}
+
+      {% if form.errors %}
+        {% set error_items = [] %}
+        {% for field_name, field_errors in form.errors.items() %}
+          {% set _ = error_items.append({"text": field_errors[0], "href": "#" ~ field_name}) %}
+        {% endfor %}
+        {{ govukErrorSummary({
+          "titleText": "There is a problem",
+          "errorList": error_items
+        }) }}
+      {% endif %}
+
+      <h1 class="govuk-heading-xl">Sign in</h1>
+      <p class="govuk-body">
+        Sign in to continue your applicant or assessor work on the grants platform.
+      </p>
+
+      <form method="post"
+            action="{{ url_for('auth.login', next=next_url) if next_url else url_for('auth.login') }}"
+            novalidate>
+        {{ form.hidden_tag() }}
+        {{ form.email(params={"autocomplete": "username", "spellcheck": "false"}) }}
+        {{ form.password(params={"autocomplete": "current-password"}) }}
+        {{ form.submit }}
+      </form>
+
+      <p class="govuk-body govuk-!-margin-top-6">
+        Don't have an account yet?
+        <a class="govuk-link" href="{{ url_for('auth.register') }}">Create an applicant account</a>.
+      </p>
+    </div>
+  </div>
+{% endblock %}
