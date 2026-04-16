@@ -6,9 +6,16 @@
     application  — Application model (application.id, application.grant.name)
     page         — page dict from the JSON schema {id, title, fields}
     answers      — {field_id: value} for this page (may be empty)
+<<<<<<< HEAD
     errors       — {field_id: "message"} from validate_page (may be empty)
     action_url   — POST target built by Stream A
     back_url     — previous-page URL or None
+    page_number  — (optional) 1-based index of this page; omit or pass None
+    total_pages  — (optional) total number of pages; omit or pass None
+
+  When both page_number and total_pages are provided the template renders a
+  "Page X of Y" progress line above the page heading. Stream A computes these
+  by calling forms_runner.get_page_position(schema, page_id).
 #}
 {% extends "base.html" %}
 
@@ -36,6 +43,9 @@
     <div class="govuk-grid-column-two-thirds">
 
       <span class="govuk-caption-l">{{ application.grant.name }}</span>
+      {% if page_number and total_pages %}
+        <p class="govuk-body-s govuk-!-colour-secondary">Page {{ page_number }} of {{ total_pages }}</p>
+      {% endif %}
       <h1 class="govuk-heading-xl">{{ page.title }}</h1>
 
       {# Build the error summary list so each item links to its field. #}

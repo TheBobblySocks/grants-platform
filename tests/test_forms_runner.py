@@ -9,6 +9,7 @@ from app.forms_runner import (
     EligibilityResult,
     evaluate_eligibility,
     get_page,
+    get_page_position,
     list_pages,
     merge_page_answers,
     next_page_id,
@@ -220,3 +221,36 @@ def test_labels_contains_every_rule_regardless_of_pass_fail():
     assert set(result.labels.keys()) == expected_ids
     # Spot-check one label value.
     assert result.labels["org_type"] == "Organisation type must be charity, CIO, CIC, CBS or PCC"
+
+
+# ---------------------------------------------------------------------------
+# get_page_position (P2.1)
+# ---------------------------------------------------------------------------
+
+_THREE_PAGE_SCHEMA = {
+    "id": "multi",
+    "version": 1,
+    "kind": "application",
+    "pages": [
+        {"id": "a", "title": "A", "fields": []},
+        {"id": "b", "title": "B", "fields": []},
+        {"id": "c", "title": "C", "fields": []},
+    ],
+}
+
+
+def test_get_page_position_first_page():
+    assert get_page_position(_THREE_PAGE_SCHEMA, "a") == (1, 3)
+
+
+def test_get_page_position_last_page():
+    assert get_page_position(_THREE_PAGE_SCHEMA, "c") == (3, 3)
+
+
+def test_get_page_position_middle_page():
+    assert get_page_position(_THREE_PAGE_SCHEMA, "b") == (2, 3)
+
+
+def test_get_page_position_unknown_raises():
+    with pytest.raises(ValueError, match="not found in schema"):
+        get_page_position(_THREE_PAGE_SCHEMA, "missing")
