@@ -1,0 +1,58 @@
+{
+  "id": "ehcf-eligibility",
+  "version": 1,
+  "kind": "eligibility",
+  "pages": [
+    {
+      "id": "eligibility",
+      "title": "Check your eligibility",
+      "fields": [
+        {
+          "id": "org_type",
+          "type": "radio",
+          "label": "What type of applicant organisation are you?",
+          "required": true,
+          "options": [
+            {"value": "charity", "label": "Registered charity"},
+            {"value": "CIO", "label": "Charitable Incorporated Organisation (CIO)"},
+            {"value": "CIC", "label": "Community Interest Company (CIC, non profit-distributing)"},
+            {"value": "CBS", "label": "Community Benefit Society"},
+            {"value": "PCC", "label": "Parochial Church Council"}
+          ]
+        },
+        {
+          "id": "operates_in_england",
+          "type": "radio",
+          "label": "Does your applicant organisation operate in England?",
+          "required": true,
+          "options": [
+            {"value": "true", "label": "Yes"},
+            {"value": "false", "label": "No"}
+          ]
+        },
+        {
+          "id": "annual_income",
+          "type": "currency",
+          "label": "What was your applicant organisation's annual income in the most recent financial year (£)?",
+          "required": true
+        },
+        {
+          "id": "years_serving_homeless",
+          "type": "number",
+          "label": "How many years has your applicant organisation been delivering services to people rough sleeping or at risk of rough sleeping?",
+          "required": true
+        },
+        {
+          "id": "la_endorsement",
+          "type": "radio",
+          "label": "Do you have a letter of endorsement from a local authority (LA) homelessness or rough sleeping lead officer?",
+          "required": true,
+          "options": [
+            {"value": "true", "label": "Yes"},
+            {"value": "false", "label": "No"}
+          ]
+        }
+      ]
+    }
+  ]
+}

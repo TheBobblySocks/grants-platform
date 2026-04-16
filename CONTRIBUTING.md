@@ -60,6 +60,13 @@ Stream B also owns two shared Jinja templates (render from any blueprint):
 - `templates/forms/summary.html` — read-only summary of all answers. Context:
   `{schema, answers, documents}`. Used by Stream A's review page and Stream
   C's application detail view.
+- `templates/forms/eligibility_result.html` — eligibility pass/fail result.
+  Context: `{result, grant, continue_url, check_url}`. `result` is an
+  `EligibilityResult` (from `app.forms_runner`) with `.passed: bool`,
+  `.failures: list[str]` (rule IDs that failed), and `.labels: dict[str, str]`
+  (rule ID → human-readable label). `grant` is the `Grant` model. `continue_url`
+  is the URL to start the application (shown only when `result.passed` is true).
+  `check_url` is the URL to re-take the eligibility check.
 
 ### `app.scoring` (Stream C)
 
