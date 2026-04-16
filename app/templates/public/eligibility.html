@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Check eligibility{% endblock %}
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-xl">Check if your organisation is eligible</h1>
+    {% if eligible is true %}
+      <div class="govuk-panel govuk-panel--confirmation">
+        <h1 class="govuk-panel__title">You may be eligible</h1>
+        <div class="govuk-panel__body">Based on the information you provided, your organisation appears eligible to apply.</div>
+      </div>
+      <p class="govuk-body" style="margin-top:2rem;">
+        <a href="{{ url_for('auth.register') }}" class="govuk-button">Create an account and apply</a>
+      </p>
+    {% elif eligible is false %}
+      <div class="govuk-error-summary" data-module="govuk-error-summary">
+        <div role="alert">
+          <h2 class="govuk-error-summary__title">Your organisation is not eligible</h2>
+          <div class="govuk-error-summary__body">
+            <ul class="govuk-list govuk-error-summary__list">
+              {% for reason in reasons %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="govuk-body"><a href="{{ url_for('public.eligibility') }}" class="govuk-link">Check again</a></p>
+    {% else %}
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="govuk-form-group {% if form.org_type.errors %}govuk-form-group--error{% endif %}">
+          <label class="govuk-label govuk-label--m" for="org_type">{{ form.org_type.label.text }}</label>
+          {% for e in form.org_type.errors %}<p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ e }}</p>{% endfor %}
+          <select class="govuk-select" id="org_type" name="{{ form.org_type.name }}">
+            {% for val, lbl in form.org_type.choices %}<option value="{{ val }}" {% if form.org_type.data == val %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="govuk-form-group {% if form.annual_income.errors %}govuk-form-group--error{% endif %}">
+          <label class="govuk-label govuk-label--m" for="annual_income">{{ form.annual_income.label.text }}</label>
+          <div class="govuk-hint">Must be £5,000,000 or less</div>
+          {% for e in form.annual_income.errors %}<p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ e }}</p>{% endfor %}
+          <div class="govuk-input__wrapper"><div class="govuk-input__prefix" aria-hidden="true">£</div>
+          <input class="govuk-input govuk-input--width-10" id="annual_income" name="{{ form.annual_income.name }}" type="number" value="{{ form.annual_income.data or '' }}"></div>
+        </div>
+        <div class="govuk-form-group {% if form.years_serving_homeless.errors %}govuk-form-group--error{% endif %}">
+          <label class="govuk-label govuk-label--m" for="years_serving_homeless">{{ form.years_serving_homeless.label.text }}</label>
+          <div class="govuk-hint">Must be at least 3 years</div>
+          {% for e in form.years_serving_homeless.errors %}<p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ e }}</p>{% endfor %}
+          <input class="govuk-input govuk-input--width-4" id="years_serving_homeless" name="{{ form.years_serving_homeless.name }}" type="number" value="{{ form.years_serving_homeless.data or '' }}">
+        </div>
+        <div class="govuk-form-group">
+          <div class="govuk-checkboxes">
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" id="operates_in_england" name="{{ form.operates_in_england.name }}" type="checkbox" value="y" {% if form.operates_in_england.data %}checked{% endif %}>
+              <label class="govuk-label govuk-checkboxes__label" for="operates_in_england">{{ form.operates_in_england.label.text }}</label>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="govuk-button">Check eligibility</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

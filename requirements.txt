@@ -1,0 +1,14 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-login
+flask-bcrypt
+flask-wtf
+wtforms
+email-validator
+psycopg2-binary
+python-dotenv
+govuk-frontend-jinja
+govuk-frontend-wtf
+anthropic
+werkzeug
