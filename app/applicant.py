@@ -39,6 +39,7 @@ from sqlalchemy.orm import selectinload
 from werkzeug.datastructures import MultiDict
 
 from app.auth import applicant_required
+from app.authz import is_application_owned_by
 from app.extensions import db
 from app.external_validators import validate_page_external
 from app.forms_runner import (
@@ -83,7 +84,7 @@ class _ActionForm(FlaskForm):
 def _get_owned_application(app_id: int) -> Application:
     """Load an application or 404 if it isn't owned by the current user's org."""
     application = db.session.get(Application, app_id)
-    if application is None or application.org_id != current_user.org_id:
+    if application is None or not is_application_owned_by(application, current_user):
         abort(404)
     return application
 
