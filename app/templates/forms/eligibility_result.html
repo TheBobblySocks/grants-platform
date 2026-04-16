@@ -1,0 +1,86 @@
+{#
+  Eligibility check result page — owned by Stream B.
+
+  Context:
+    result       — EligibilityResult (from app.forms_runner):
+                     .passed: bool
+                     .failures: list[str]  — rule IDs that failed
+                     .labels: dict[str, str]  — {rule_id: human-readable label}
+    grant        — Grant model; grant.name used for the page heading
+    continue_url — str, URL to proceed to if eligible (Stream A builds this)
+    check_url    — str, URL to re-take the eligibility check
+
+  Passing state  (result.passed == True):
+    Renders a GOV.UK confirmation panel and a "Start your application" link button.
+
+  Failing state  (result.passed == False):
+    Renders a GOV.UK warning text block, lists each failing rule by its
+    human-readable label (result.labels[rule_id]), a link back to check_url,
+    and the EHCF contact address.
+#}
+{% extends "base.html" %}
+
+{% from 'govuk_frontend_jinja/components/panel/macro.html' import govukPanel %}
+{% from 'govuk_frontend_jinja/components/warning-text/macro.html' import govukWarningText %}
+{% from 'govuk_frontend_jinja/components/button/macro.html' import govukButton %}
+{% from 'govuk_frontend_jinja/components/inset-text/macro.html' import govukInsetText %}
+
+{% block title %}Eligibility check — {{ grant.name }}{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+
+      {% if result.passed %}
+
+        {{ govukPanel({
+          "titleText": "You appear to be eligible",
+          "html": "Based on your answers, your organisation meets the eligibility criteria for <strong>" ~ grant.name ~ "</strong>."
+        }) }}
+
+        <p class="govuk-body govuk-!-margin-top-6">
+          You can now start your application. Make sure you have the following ready:
+        </p>
+        <ul class="govuk-list govuk-list--bullet">
+          <li>your organisation's registration or charity number</li>
+          <li>the letter of endorsement from your LA homelessness or rough sleeping lead officer</li>
+          <li>a summary of your proposed project and budget</li>
+        </ul>
+
+        {{ govukButton({
+          "text": "Start your application",
+          "href": continue_url
+        }) }}
+
+      {% else %}
+
+        {{ govukWarningText({
+          "text": "Your organisation does not appear to be eligible",
+          "iconFallbackText": "Warning"
+        }) }}
+
+        <p class="govuk-body">
+          Based on your answers, your organisation does not meet one or more of the eligibility
+          criteria for {{ grant.name }}.
+        </p>
+
+        <h2 class="govuk-heading-m">Criteria your organisation does not meet</h2>
+        <ul class="govuk-list govuk-list--bullet">
+          {% for rule_id in result.failures %}
+            <li>{{ result.labels[rule_id] }}</li>
+          {% endfor %}
+        </ul>
+
+        {{ govukInsetText({
+          "html": "If you believe this is incorrect, contact <a class=\"govuk-link\" href=\"mailto:ehcf@communities.gov.uk\">ehcf@communities.gov.uk</a>."
+        }) }}
+
+        <p class="govuk-body">
+          <a href="{{ check_url }}" class="govuk-link">Check your answers</a>
+        </p>
+
+      {% endif %}
+
+    </div>
+  </div>
+{% endblock %}
