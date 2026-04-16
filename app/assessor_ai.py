@@ -5,6 +5,17 @@ Called immediately after an application is submitted. Uses Claude to:
   2. Produce a score (0-max) for each criterion.
   3. Persist an Assessment row with scores_json, notes_json, weighted_total,
      and a recommendation.
+  4. Send an email notification to the configured address.
+
+Environment variables
+---------------------
+ANTHROPIC_API_KEY   Required. Claude API key.
+NOTIFY_EMAIL        Recipient address for assessment notifications.
+SMTP_HOST           SMTP server hostname (default: localhost).
+SMTP_PORT           SMTP port (default: 587).
+SMTP_USER           SMTP username (optional).
+SMTP_PASSWORD       SMTP password (optional).
+SMTP_FROM           Sender address (default: grants-platform@noreply.local).
 
 The AI assessor user (assessor_id) is a synthetic system account upserted on
 first run so the non-nullable FK is satisfied without a schema change.
@@ -14,7 +25,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import smtplib
+import textwrap
 from datetime import UTC, datetime
+from email.mime.text import MIMEText
 
 import anthropic
 
@@ -34,6 +49,11 @@ _AI_ASSESSOR_EMAIL = "ai-assessor@system.local"
 _MODEL = "claude-sonnet-4-6"
 
 
+# ---------------------------------------------------------------------------
+# AI system user
+# ---------------------------------------------------------------------------
+
+
 def _get_or_create_ai_user() -> User:
     """Return the synthetic AI assessor user, creating it if absent."""
     user = User.query.filter_by(email=_AI_ASSESSOR_EMAIL).first()
@@ -49,17 +69,20 @@ def _get_or_create_ai_user() -> User:
     return user
 
 
+# ---------------------------------------------------------------------------
+# Prompt construction
+# ---------------------------------------------------------------------------
+
+
 def _build_prompt(application: Application, criteria: list[dict]) -> str:
     """Render a structured prompt for Claude from the application answers."""
     answers = application.answers_json or {}
-    answers_block = "
-".join(
-        f"  {key}: {json.dumps(value, ensure_ascii=False)}"
+    answers_block = "\n".join(
+        "  {}: {}".format(key, json.dumps(value, ensure_ascii=False))
         for key, value in answers.items()
     ) or "  (no answers provided)"
 
-    criteria_block = "
-".join(
+    criteria_block = "\n".join(
         "  - id={!r}, label={!r}, max={}, weight={}{}".format(
             c["id"],
             c["label"],
@@ -70,27 +93,24 @@ def _build_prompt(application: Application, criteria: list[dict]) -> str:
         for c in criteria
     )
 
-    return f"""You are an expert grant assessor for the {application.grant.name} programme.
-
-## Application answers
-{answers_block}
-
-## Scoring criteria
-Score each criterion from 0 to its stated max. Return ONLY valid JSON with no prose outside it.
-
-{criteria_block}
-
-## Required JSON output (strictly this shape)
-{{
-  "scores": {{"<criterion_id>": <int>, ...}},
-  "notes": {{"<criterion_id>": "<rationale string>", ...}},
-  "gap_analysis": "<brief overall narrative of strengths and gaps>",
-  "recommendation": "fund" | "reject" | "refer"
-}}
-
-Scoring guide (adjust if max != 3): 0 = does not meet threshold, 1 = partially meets, 2 = meets, 3 = exceeds.
-Auto-reject criteria must score > 0 unless the evidence is genuinely absent.
-Base the recommendation on the weighted total relative to max and any auto-reject flags."""
+    return (
+        "You are an expert grant assessor for the {} programme.\n\n"
+        "## Application answers\n{}\n\n"
+        "## Scoring criteria\n"
+        "Score each criterion from 0 to its stated max. Return ONLY valid JSON with no prose outside it.\n\n"
+        "{}\n\n"
+        "## Required JSON output (strictly this shape)\n"
+        "{{\n"
+        '  "scores": {{"<criterion_id>": <int>, ...}},\n'
+        '  "notes": {{"<criterion_id>": "<rationale string>", ...}},\n'
+        '  "gap_analysis": "<brief overall narrative of strengths and gaps>",\n'
+        '  "recommendation": "fund" | "reject" | "refer"\n'
+        "}}\n\n"
+        "Scoring guide (adjust if max != 3): 0 = does not meet threshold, 1 = partially meets, "
+        "2 = meets, 3 = exceeds.\n"
+        "Auto-reject criteria must score > 0 unless the evidence is genuinely absent.\n"
+        "Base the recommendation on the weighted total relative to max and any auto-reject flags."
+    ).format(application.grant.name, answers_block, criteria_block)
 
 
 def _parse_response(text: str) -> dict:
@@ -99,9 +119,101 @@ def _parse_response(text: str) -> dict:
     if text.startswith("```"):
         lines = text.splitlines()
         inner = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
-        text = "
-".join(inner)
+        text = "\n".join(inner)
     return json.loads(text)
+
+
+# ---------------------------------------------------------------------------
+# Email notification
+# ---------------------------------------------------------------------------
+
+
+def _send_notification(assessment: Assessment) -> None:
+    """Email the assessment result to NOTIFY_EMAIL. Fails silently if unconfigured."""
+    recipient = os.environ.get("NOTIFY_EMAIL", "ross.mckelvie@fylde.gov.uk")
+    smtp_host = os.environ.get("SMTP_HOST", "localhost")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+    smtp_from = os.environ.get("SMTP_FROM", "grants-platform@noreply.local")
+
+    application = assessment.application
+    org_name = application.organisation.name if application.organisation else "Unknown"
+    grant_name = application.grant.name if application.grant else "Unknown"
+    recommendation = (
+        assessment.recommendation.value.upper() if assessment.recommendation else "N/A"
+    )
+    gap_analysis = assessment.notes_json.get("_gap_analysis", "No summary available.")
+
+    score_lines = []
+    criteria = application.grant.config_json.get("criteria", [])
+    for c in criteria:
+        cid = c["id"]
+        score = assessment.scores_json.get(cid, "N/A")
+        note = assessment.notes_json.get(cid, "")
+        score_lines.append("  {}: {}/{}\n    {}".format(c["label"], score, c["max"], note))
+
+    scores_block = "\n".join(score_lines) or "  No scores recorded."
+
+    body = textwrap.dedent("""
+        AI Assessment Complete
+
+        Application ID : {}
+        Organisation   : {}
+        Grant          : {}
+        Submitted      : {}
+
+        Weighted total : {}
+        Recommendation : {}
+
+        --- Criterion Scores ---
+        {}
+
+        --- Overall Assessment ---
+        {}
+
+        Assessed at {} by AI (claude-sonnet-4-6).
+        View application: /assessor/application/{}
+    """).strip().format(
+        application.id,
+        org_name,
+        grant_name,
+        application.submitted_at,
+        assessment.weighted_total,
+        recommendation,
+        scores_block,
+        gap_analysis,
+        assessment.completed_at,
+        application.id,
+    )
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = "[{}] AI Assessment: {} -- {}".format(recommendation, org_name, grant_name)
+    msg["From"] = smtp_from
+    msg["To"] = recipient
+
+    try:
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+
+        if smtp_user and smtp_password:
+            server.login(smtp_user, smtp_password)
+
+        server.sendmail(smtp_from, [recipient], msg.as_string())
+        server.quit()
+        log.info("Assessment notification sent to %s", recipient)
+    except Exception as exc:
+        log.warning("Failed to send assessment notification: %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
 
 
 def assess_application(application_id: int) -> Assessment | None:
@@ -144,8 +256,7 @@ def assess_application(application_id: int) -> Assessment | None:
         parsed = _parse_response(raw)
     except (json.JSONDecodeError, KeyError, IndexError) as exc:
         log.error(
-            "assess_application: failed to parse Claude response: %s
-%s", exc, raw
+            "assess_application: failed to parse Claude response: %s\n%s", exc, raw
         )
         return None
 
@@ -185,4 +296,7 @@ def assess_application(application_id: int) -> Assessment | None:
         weighted_total,
         recommendation.value,
     )
+
+    _send_notification(assessment)
+
     return assessment
