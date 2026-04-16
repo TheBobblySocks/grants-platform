@@ -46,11 +46,16 @@
 
       <span class="govuk-caption-l">{{ application.grant.name }}</span>
 
+      {# --- Optional eligibility/section label --- #}
+      {% if form_caption is defined and form_caption %}
+        <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ form_caption }}</p>
+      {% endif %}
+
       {# --- Page progress indicator --- #}
       {% if all_pages is defined and all_pages and current_index is defined and current_index is not none %}
-        <p class="govuk-body-s govuk-!-colour-secondary">Page {{ current_index + 1 }} of {{ all_pages|length }}</p>
+        <p class="govuk-caption-m">Page {{ current_index + 1 }} of {{ all_pages|length }}</p>
       {% elif page_number and total_pages %}
-        <p class="govuk-body-s govuk-!-colour-secondary">Page {{ page_number }} of {{ total_pages }}</p>
+        <p class="govuk-caption-m">Page {{ page_number }} of {{ total_pages }}</p>
       {% endif %}
 
       <h1 class="govuk-heading-xl">{{ page.title }}</h1>
@@ -215,11 +220,23 @@
 
           {# ---- date ---- #}
           {% elif field.type == "date" %}
+            {# Split stored YYYY-MM-DD back into separate day / month / year for pre-fill.
+               The | int | string filter pair strips leading zeros (e.g. "01" → 1 → "1")
+               which is the correct format for GOV.UK date inputs. #}
+            {% set _dp = field_value.split("-") if (field_value and "-" in field_value) else [] %}
+            {% set _day   = (_dp[2] | int | string) if _dp | length == 3 and _dp[2] else "" %}
+            {% set _month = (_dp[1] | int | string) if _dp | length == 3 and _dp[1] else "" %}
+            {% set _year  = _dp[0] if _dp | length == 3 and _dp[0] else "" %}
             {{ govukDateInput({
               "id": field.id,
               "namePrefix": field.id,
               "fieldset": {"legend": {"text": field.label, "classes": "govuk-fieldset__legend--m"}},
               "hint": {"text": field.hint} if field.hint is defined and field.hint else {},
+              "items": [
+                {"name": "day",   "classes": "govuk-input--width-2", "value": _day},
+                {"name": "month", "classes": "govuk-input--width-2", "value": _month},
+                {"name": "year",  "classes": "govuk-input--width-4", "value": _year}
+              ],
               "errorMessage": error_obj
             }) }}
 
