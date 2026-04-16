@@ -12,19 +12,6 @@
 
     <h1 class="govuk-heading-xl">Import grant from prospectus</h1>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="govuk-error-summary" data-module="govuk-error-summary">
-          <div role="alert">
-            <h2 class="govuk-error-summary__title">There is a problem</h2>
-            <div class="govuk-error-summary__body">
-              <p class="govuk-body">{{ message }}</p>
-            </div>
-          </div>
-        </div>
-      {% endfor %}
-    {% endwith %}
-
     <p class="govuk-body">
       Upload a structured CSV prospectus or paste the prospectus text below.
       The platform will use AI to extract the grant configuration, eligibility rules,

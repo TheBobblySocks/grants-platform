@@ -398,6 +398,33 @@ def test_logout_banner_is_shown_on_landing_page(client, make_user):
     assert "You have been signed out." in body
 
 
+def test_signin_banner_does_not_leak_into_later_pages(client, make_user):
+    """Regression: the sign-in banner is consumed on the page the user lands
+    on after login, even if that page isn't a Stream A template. Otherwise a
+    "You are signed in." flash could sit in the session and render alongside
+    "You have been signed out." on the landing page after logout.
+    """
+    _u, password = make_user(
+        email="assessor@x.test", role=UserRole.ASSESSOR, with_org=False
+    )
+
+    # Sign in — assessor lands on /assess/ which is not a Stream A template.
+    after_login = client.post(
+        "/auth/login",
+        data={"email": "assessor@x.test", "password": password},
+        follow_redirects=True,
+    )
+    assert after_login.status_code == 200
+    assert "You are signed in." in after_login.get_data(as_text=True)
+
+    # Sign out — redirects to the landing page. Only the logout banner should
+    # be shown; the login banner must already have been consumed.
+    after_logout = client.post("/auth/logout", follow_redirects=True)
+    body = after_logout.get_data(as_text=True)
+    assert "You have been signed out." in body
+    assert "You are signed in." not in body
+
+
 def test_logout_requires_authentication(client):
     response = client.post("/auth/logout", follow_redirects=False)
     assert response.status_code == 302
