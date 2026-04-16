@@ -1,4 +1,4 @@
-name: Check ideas/
+name: Ideas directory
 
 on:
   pull_request:
@@ -8,12 +8,12 @@ on:
 
 jobs:
   filenames:
-    name: ideas/ filename convention
+    name: Validate filename format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate filenames in ideas/
+      - name: Check timestamp prefix and .md/.txt extension
         shell: bash
         run: |
           set -euo pipefail
