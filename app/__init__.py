@@ -31,6 +31,7 @@ _BLUEPRINT_MODULES: tuple[str, ...] = (
 def create_app(config_class: str | type = "config.Config") -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
+    _enforce_secret_key(app)
 
     _install_jinja_loaders(app)
     WTFormsHelpers(app)
@@ -62,6 +63,24 @@ def create_app(config_class: str | type = "config.Config") -> Flask:
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 
     return app
+
+
+def _enforce_secret_key(app: Flask) -> None:
+    """Refuse to boot with the dev-only fallback secret in a prod-ish run.
+
+    ``FLASK_DEBUG`` or ``TESTING`` opts into local/dev mode. Anything else
+    (gunicorn, docker prod profile, a forgotten env in staging) must set
+    ``FLASK_SECRET_KEY`` to a real value.
+    """
+    from config import DEV_SECRET_FALLBACK
+
+    if app.config.get("TESTING") or app.debug:
+        return
+    if app.config.get("SECRET_KEY") == DEV_SECRET_FALLBACK:
+        raise RuntimeError(
+            "FLASK_SECRET_KEY is unset (or left at the dev fallback). Set a "
+            "cryptographically random value before booting in production."
+        )
 
 
 def _register_external_validators(app: Flask) -> None:

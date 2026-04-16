@@ -11,9 +11,14 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Dev-only fallback. The factory refuses to boot with this value unless
+# ``FLASK_DEBUG`` or ``TESTING`` is set, so a forgotten env var in prod
+# fails loudly instead of signing sessions with a guessable secret.
+DEV_SECRET_FALLBACK = "dev-secret-do-not-use-in-prod"
+
 
 class Config:
-    SECRET_KEY: str = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+    SECRET_KEY: str = os.environ.get("FLASK_SECRET_KEY", DEV_SECRET_FALLBACK)
     SQLALCHEMY_DATABASE_URI: str = os.environ.get(
         "DATABASE_URL", f"sqlite:///{BASE_DIR / 'grants.db'}"
     )
