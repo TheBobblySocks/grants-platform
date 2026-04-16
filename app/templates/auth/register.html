@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% from 'govuk_frontend_jinja/components/error-summary/macro.html' import govukErrorSummary %}
+
+{% block title %}Create an applicant account{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% include "applicant/_flash.html" %}
+
+      {% if form.errors %}
+        {% set error_items = [] %}
+        {% for field_name, field_errors in form.errors.items() %}
+          {% set _ = error_items.append({"text": field_errors[0], "href": "#" ~ field_name}) %}
+        {% endfor %}
+        {{ govukErrorSummary({
+          "titleText": "There is a problem",
+          "errorList": error_items
+        }) }}
+      {% endif %}
+
+      <span class="govuk-caption-l">Applicant organisations only</span>
+      <h1 class="govuk-heading-xl">Create an account</h1>
+      <p class="govuk-body">
+        Register your voluntary, community or faith sector organisation to apply
+        for government grant funding. Assessor accounts are provisioned separately
+        by your department.
+      </p>
+
+      <form method="post" action="{{ url_for('auth.register') }}" novalidate>
+        {{ form.hidden_tag() }}
+        {{ form.organisation_name(params={"autocomplete": "organization"}) }}
+        {{ form.email(params={"autocomplete": "email", "spellcheck": "false"}) }}
+        {{ form.password(params={"autocomplete": "new-password"}) }}
+        {{ form.confirm_password(params={"autocomplete": "new-password"}) }}
+        {{ form.submit }}
+      </form>
+
+      <p class="govuk-body govuk-!-margin-top-6">
+        Already have an account?
+        <a class="govuk-link" href="{{ url_for('auth.login') }}">Sign in</a>.
+      </p>
+    </div>
+  </div>
+{% endblock %}
