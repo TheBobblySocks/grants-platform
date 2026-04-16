@@ -597,3 +597,42 @@ Before reporting a task complete, Claude must:
 
 If any of those can't be satisfied, say so plainly — "I got X working but
 Y is broken" is more useful than a green-tick summary that hides the gap.
+
+---
+
+## Claude Code Automation (project skills)
+
+The project has local Claude Code skills in `.claude/skills/` to accelerate
+development. These are the available project-level skills:
+
+| Skill | Invocation | Purpose |
+|---|---|---|
+| **orchestrate** | `/orchestrate` | Scan PLAN.md for pending work, dispatch parallel sub-agents in isolated worktrees (one per stream), review results, and create PRs. Trigger repeatedly to advance the build. |
+| **ship** | `/ship` | Run pre-flight checks (tests, lint, boot), create a branch, and open a PR to main. |
+| **verify** | `/verify` | Quick health check — tests, lint, boot, git state. |
+| **stream-a** | `/stream-a` | Context loader for Stream A (Auth + Applicant UX). |
+| **stream-b** | `/stream-b` | Context loader for Stream B (Form Runner). |
+| **stream-c** | `/stream-c` | Context loader for Stream C (Assessor + Scoring). |
+| **stream-d** | `/stream-d` | Context loader for Stream D (Platform + Data). |
+
+### Orchestrator workflow
+
+The `/orchestrate` skill is the primary development accelerator:
+
+1. It reads PLAN.md to find pending work in the earliest unfinished phase.
+2. It selects 2–3 independent tasks from **different streams** (so agents
+   don't edit the same files).
+3. It dispatches sub-agents in **isolated worktrees** — each gets its own
+   branch and can't conflict with the others.
+4. It reviews results for quality, stream boundary compliance, and correctness.
+5. It creates PRs (never pushes to main directly).
+6. It updates PLAN.md, CHANGELOG.md, and session notes.
+
+Trigger `/orchestrate` repeatedly to keep advancing the build. Each run picks
+up where the last one left off.
+
+### Project settings
+
+`.claude/settings.json` pre-allows common commands (pytest, ruff, flask,
+git operations, gh CLI) so the orchestrator and sub-agents can run without
+manual permission prompts on every command.
