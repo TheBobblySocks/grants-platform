@@ -25,7 +25,11 @@
           "id": "registration_number",
           "type": "text",
           "label": "Charity or company registration number",
-          "required": true
+          "required": true,
+          "external_validator": {
+            "name": "find_that_charity",
+            "context_fields": ["org_type"]
+          }
         },
         {
           "id": "annual_income",
