@@ -16,6 +16,7 @@ from app.models import (
     User,
     UserRole,
 )
+from app.extensions import db
 from app.uploads import UploadRejected, list_documents, save_upload
 
 # ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ class TestSaveUpload:
     def test_creates_document_row(self, app, submitted_application):
         with app.app_context():
             doc = save_upload(submitted_application, "budget", _make_file())
+            db.session.commit()
             assert doc.id is not None
             assert doc.application_id == submitted_application.id
             assert doc.kind == "budget"
@@ -63,6 +65,7 @@ class TestSaveUpload:
                 "budget",
                 _make_file(content=b"%PDF-1.4 hello world"),
             )
+            db.session.commit()
             upload_folder = app.config["UPLOAD_FOLDER"]
             full_path = os.path.join(upload_folder, doc.storage_path)
             assert os.path.isfile(full_path)
@@ -88,6 +91,7 @@ class TestSaveUpload:
                 "la_letter",
                 _make_file(filename="../../../etc/report.pdf"),
             )
+            db.session.commit()
             assert ".." not in doc.storage_path
             assert "etc" in doc.storage_path or "report" in doc.storage_path
 
@@ -102,6 +106,7 @@ class TestListDocuments:
         with app.app_context():
             save_upload(submitted_application, "budget", _make_file(filename="a.pdf"))
             save_upload(submitted_application, "plan", _make_file(filename="b.pdf"))
+            db.session.commit()
             docs = list_documents(submitted_application.id)
             assert len(docs) == 2
             assert docs[0].filename == "a.pdf"
@@ -122,6 +127,7 @@ class TestServeDocument:
         """Unauthenticated users are redirected to login."""
         with app.app_context():
             doc = save_upload(submitted_application, "budget", _make_file())
+            db.session.commit()
             doc_id = doc.id
         resp = client.get(f"/uploads/{doc_id}")
         assert resp.status_code in (301, 302)
@@ -135,6 +141,7 @@ class TestServeDocument:
                 "budget",
                 _make_file(content=pdf_content),
             )
+            db.session.commit()
             doc_id = doc.id
         _login(client, applicant_user)
         resp = client.get(f"/uploads/{doc_id}")
@@ -145,6 +152,7 @@ class TestServeDocument:
         """An applicant from a different org gets 403."""
         with app.app_context():
             doc = save_upload(submitted_application, "budget", _make_file())
+            db.session.commit()
             doc_id = doc.id
 
             # Create a second org + user
@@ -172,6 +180,7 @@ class TestServeDocument:
     def test_assessor_can_access_submitted(self, app, client, assessor_user, submitted_application):
         with app.app_context():
             doc = save_upload(submitted_application, "budget", _make_file())
+            db.session.commit()
             doc_id = doc.id
         _login(client, assessor_user)
         resp = client.get(f"/uploads/{doc_id}")
@@ -188,8 +197,9 @@ class TestServeDocument:
                 answers_json={},
             )
             db.session.add(draft_app)
-            db.session.commit()
+            db.session.flush()
             doc = save_upload(draft_app, "budget", _make_file())
+            db.session.commit()
             doc_id = doc.id
 
         _login(client, assessor_user)

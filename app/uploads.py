@@ -43,7 +43,7 @@ _SAFE_KIND_RE = _re.compile(r"^[A-Za-z0-9_-]+$")
 # We check both the extension and the first few bytes (magic numbers) to
 # prevent bypass via renamed executables.
 _ALLOWED_EXTENSIONS: frozenset[str] = frozenset(
-    {".pdf", ".doc", ".docx", ".odt", ".xls", ".xlsx", ".ods", ".csv", ".png", ".jpg", ".jpeg"}
+    {".pdf", ".doc", ".docx", ".odt", ".xls", ".xlsx", ".ods", ".csv", ".png", ".jpg", ".jpeg", ".gif"}
 )
 
 # Magic-byte signatures for each allowed content category.
@@ -54,6 +54,8 @@ _MAGIC_SIGNATURES: list[tuple[bytes, str]] = [
     (b"PK\x03\x04", "Office Open XML / ODP / ODS (zip-based)"),  # ZIP (docx/xlsx/ods)
     (b"\x89PNG", "PNG"),
     (b"\xff\xd8\xff", "JPEG"),
+    (b"GIF87a", "GIF"),
+    (b"GIF89a", "GIF"),
 ]
 
 
@@ -116,7 +118,10 @@ def save_upload(
         filename=original_filename,
     )
     db.session.add(doc)
-    db.session.commit()
+    # flush (not commit) so the Document gets an ID but stays inside the
+    # caller's transaction — rollback still retracts the row if later
+    # validation fails in the same request.
+    db.session.flush()
     return doc
 
 
@@ -169,4 +174,5 @@ def serve_document(doc_id: int):
         upload_folder,
         doc.storage_path,
         download_name=doc.filename,
+        as_attachment=True,
     )

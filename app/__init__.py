@@ -32,10 +32,37 @@ def create_app(config_class: str | type = "config.Config") -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Warn loudly when the insecure default key slips through to a non-dev run.
+    if (
+        not app.debug
+        and not app.testing
+        and app.config["SECRET_KEY"] == "dev-secret-change-me"
+    ):
+        import warnings
+
+        warnings.warn(
+            "FLASK_SECRET_KEY is not set — using insecure default. "
+            "Set FLASK_SECRET_KEY in production.",
+            stacklevel=2,
+        )
+
     _install_jinja_loaders(app)
     WTFormsHelpers(app)
 
     db.init_app(app)
+
+    # SQLite ignores FK constraints by default. Enable them on every new
+    # connection so referential integrity is actually enforced.
+    from sqlalchemy import event
+
+    with app.app_context():
+
+        @event.listens_for(db.engine, "connect")
+        def _set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
     login_manager.init_app(app)
     limiter.init_app(app)
     login_manager.login_view = "auth.login"
