@@ -705,10 +705,10 @@ owns it). Name classes with `app-` prefix to avoid collisions with `govuk-` clas
 ### Build status (2026-04-16 end of day)
 
 **Phases 0-4 complete.** All PLAN.md build items either merged or in PR #60.
-235 tests passing, 8 pre-existing failures (`test_assessor_ai.py` — missing
-`anthropic` SDK). The data-driven architecture proved out: adding Common Ground
-Award (P4.1) and Local Digital partnership schema (P4.4) required zero Python
-code changes.
+304 tests passing, zero failures; `anthropic` SDK pinned in `pyproject.toml`
+so the AI-assessor tests run green. The data-driven architecture proved out:
+adding Common Ground Award (P4.1) and Local Digital partnership schema (P4.4)
+required zero Python code changes.
 
 ### Parallel orchestrator contention
 
