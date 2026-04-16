@@ -1,0 +1,46 @@
+{#
+  Centralised flash-message renderer.
+
+  Included once from ``base.html`` so every page consumes any pending flash
+  messages. This avoids the bug where a page that forgets to render flashes
+  leaves them queued in the session, only to stack up on the *next* page the
+  user visits (e.g. sign-in and sign-out banners appearing together).
+
+  Do not include this partial from individual page templates — the base
+  template already handles it.
+
+  Category → banner styling:
+  - ``"error"``    → ``type=error``,   titled "There is a problem"
+  - ``"success"``  → ``type=success``, titled "Success"
+  - anything else  → default (info) banner, titled "Information"
+#}
+{% from 'govuk_frontend_jinja/components/notification-banner/macro.html' import govukNotificationBanner %}
+
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        {% for category, message in messages %}
+          {% if category == "error" %}
+            {{ govukNotificationBanner({
+              "type": "error",
+              "titleText": "There is a problem",
+              "text": message
+            }) }}
+          {% elif category == "success" %}
+            {{ govukNotificationBanner({
+              "type": "success",
+              "titleText": "Success",
+              "text": message
+            }) }}
+          {% else %}
+            {{ govukNotificationBanner({
+              "titleText": "Information",
+              "text": message
+            }) }}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endwith %}

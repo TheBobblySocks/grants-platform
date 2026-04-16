@@ -11,7 +11,7 @@ description: Context loader for Stream A (Auth and Applicant UX). Read before wo
 - `app/auth.py` — login, register, logout, role decorators
 - `app/applicant.py` — /apply routes (dashboard, start, form_page, save_page, review, submit)
 - `app/templates/auth/**` — login.html, register.html
-- `app/templates/applicant/**` — dashboard.html, review.html, _flash.html, _inline_summary.html
+- `app/templates/applicant/**` — dashboard.html, review.html, _inline_summary.html
 - `tests/test_auth.py`
 - `tests/test_applicant.py`
 
@@ -62,5 +62,7 @@ As of the last scan, both files are **fully implemented** with:
 - WTForms for login/register only. Application form pages use forms_runner.py.
 - Every route needs @login_required + @applicant_required (or @assessor_required).
 - Use `url_for()` for all links — never hardcode paths.
-- Flash messages for success/error — use the _flash.html partial.
+- Flash messages for success/error — call `flash(..., "success"|"error")`;
+  rendering is centralised in `base.html` via
+  `partials/notification_banners.html`. Do not add per-page flash renderers.
 - Status transitions: DRAFT → SUBMITTED (via submit action). Never skip states.
