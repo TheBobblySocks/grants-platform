@@ -328,3 +328,17 @@ Supported field types: `text`, `textarea`, `radio`, `checkbox`, `select`, `numbe
 - [CLAUDE.md](CLAUDE.md) -- binding conventions for AI contributions
 - `refs/ehcf-prospectus.md` -- EHCF grant prospectus
 - `refs/` -- further grant prospectuses for stress-testing flexibility
+
+## Reference material
+
+Role	Email	Password
+Assessor	assessor@ehcf.test	Assessor123!
+Admin	admin@ehcf.test	Admin1234567!
+Applicant	applicant@ehcf.test	Applicant123!
+
+
+/auth/login -- sign in as assessor@ehcf.test / Assessor123! to see the assessor queue
+/auth/login -- sign in as applicant@ehcf.test / Applicant123! to see the applicant dashboard
+/assess/ -- assessor queue (after logging in as assessor)
+/assess/allocation -- allocation dashboard
+
