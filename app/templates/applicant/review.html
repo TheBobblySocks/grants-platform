@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block beforeContent %}
+  {{ super() }}
+  <a class="govuk-back-link" href="{{ url_for('applicant.dashboard') }}">Back to your applications</a>
+{% endblock %}
+
 {% from 'govuk_frontend_jinja/components/button/macro.html' import govukButton %}
 {% from 'govuk_frontend_jinja/components/tag/macro.html' import govukTag %}
 {% from 'govuk_frontend_jinja/components/error-summary/macro.html' import govukErrorSummary %}
@@ -75,8 +80,8 @@
       #}
       {% include "applicant/_inline_summary.html" %}
 
-      <div class="govuk-button-group govuk-!-margin-top-6">
-        {% if can_submit %}
+      {% if can_submit %}
+        <div class="govuk-button-group govuk-!-margin-top-6">
           <form method="post" action="{{ url_for('applicant.submit', app_id=application.id) }}">
             {{ submit_form.hidden_tag() }}
             {{ govukButton({
@@ -84,11 +89,8 @@
               "attributes": {"data-testid": "submit-application"}
             }) }}
           </form>
-        {% endif %}
-        <a class="govuk-link" href="{{ url_for('applicant.dashboard') }}">
-          Back to your applications
-        </a>
-      </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}
