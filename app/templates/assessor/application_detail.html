@@ -177,7 +177,11 @@
         </table>
       {% endif %}
     {% else %}
-      <p class="govuk-hint">No AI assessment yet. It runs automatically on submission.</p>
+      <p class="govuk-hint govuk-!-margin-bottom-2">No AI assessment yet.</p>
+      <form method="post" action="{{ url_for('assessor.trigger_ai', app_id=application.id) }}">
+        {{ form.hidden_tag() }}
+        <button class="govuk-button govuk-button--secondary" type="submit">Run AI assessment</button>
+      </form>
     {% endif %}
 
     <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">

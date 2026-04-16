@@ -408,6 +408,33 @@ def record_decision(app_id: int):
 
 
 # ---------------------------------------------------------------------------
+# AI assessment trigger (manual, for seeded/legacy applications)
+# ---------------------------------------------------------------------------
+
+
+@bp.post("/<int:app_id>/run-ai")
+@assessor_required
+def trigger_ai(app_id: int):
+    application = _get_application_or_404(app_id)
+    form = _CsrfForm()
+    if not form.validate_on_submit():
+        abort(400)
+
+    existing = Assessment.query.filter_by(application_id=app_id).first()
+    if existing is not None:
+        flash("AI assessment already exists for this application.", "warning")
+        return redirect(url_for("assessor.application_detail", app_id=app_id))
+
+    from app.assessor_ai import assess_application
+    assessment = assess_application(app_id)
+    if assessment is None:
+        flash("AI assessment failed -- check ANTHROPIC_API_KEY is set and the application has answers.", "error")
+    else:
+        flash("AI assessment complete.", "success")
+    return redirect(url_for("assessor.application_detail", app_id=app_id))
+
+
+# ---------------------------------------------------------------------------
 # Allocation dashboard
 # ---------------------------------------------------------------------------
 
