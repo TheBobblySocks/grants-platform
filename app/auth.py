@@ -305,10 +305,10 @@ def register():
     return render_template("auth/register.html", form=form)
 
 
-@bp.post("/logout")
+@bp.route("/logout", methods=["GET", "POST"])
 @login_required
 def logout():
-    """Sign the current user out. POST-only to require CSRF."""
+    """Sign the current user out."""
     logout_user()
     flash("You have been signed out.", "success")
     return redirect(url_for("public.index"))
