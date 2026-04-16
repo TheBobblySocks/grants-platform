@@ -241,6 +241,9 @@ def test_dashboard_trims_organisation_name_on_render(client, db, make_user):
     body = response.get_data(as_text=True)
     assert "<strong>Padded Org</strong>" in body
     assert "   Padded Org   " not in body
+    # The sentence-ending period must sit flush against the org name —
+    # no whitespace between the closing </strong> and the ".".
+    assert "<strong>Padded Org</strong>." in body
 
 
 def test_register_redirects_if_already_logged_in(client, make_user):

@@ -28,10 +28,7 @@
 
       <h1 class="govuk-heading-xl">Your applications</h1>
       <p class="govuk-body-l">
-        Signed in as <strong>{{ current_user.email }}</strong>
-        {% if current_user.organisation %}
-          for <strong>{{ current_user.organisation.name | trim }}</strong>
-        {% endif %}.
+        Signed in as <strong>{{ current_user.email }}</strong>{% if current_user.organisation %} for <strong>{{ current_user.organisation.name | trim }}</strong>{% endif %}.
       </p>
 
       <h2 class="govuk-heading-l">Applications in progress</h2>
