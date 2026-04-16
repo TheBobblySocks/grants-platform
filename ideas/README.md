@@ -8,11 +8,23 @@ The point is to get everyone's thinking visible in one place, then synthesise.
 ## How to add an idea
 
 1. Create a new file in this directory — one file per idea.
-2. Name it something greppable: `forms-schema-shape.md`, `auth-magic-link.md`,
-   `assessor-scoring-ui.md`, `eligibility-checker.txt`, etc.
-3. Put your name or initials at the top so we know who to ask about it.
-4. Keep it short. Bullet points are fine. Half-formed is fine. Questions are fine.
-5. Commit and push — don't wait for review.
+2. **Prefix the filename with a timestamp** so lexical sort == chronological
+   order. Format: `YYYY-MM-DD-HHMM-short-title.md`. Examples:
+   `2026-04-16-0949-use-the-ideas-directory.md`,
+   `2026-04-17-1015-forms-schema-shape.md`,
+   `2026-04-17-1402-auth-magic-link.md`. Use the time you're creating the file
+   (local wall-clock is fine — we only need enough precision to break ties on
+   the same day).
+3. Keep the rest of the name greppable: `forms-schema-shape`, `auth-magic-link`,
+   `assessor-scoring-ui`, `eligibility-checker`, etc.
+4. Put your name or initials at the top so we know who to ask about it.
+5. Keep it short. Bullet points are fine. Half-formed is fine. Questions are fine.
+6. Commit and push — don't wait for review.
+
+The timestamp prefix means that when two ideas cover overlapping ground, it's
+obvious which one came later and may supersede the earlier one. Don't rename or
+delete older files to "fix" a supersession — mark the older one
+`Status: dropped` (see below) so the argument stays readable.
 
 ## Optional template
 

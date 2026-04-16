@@ -81,7 +81,10 @@ CLAUDE.md           ← longer-form context for the AI pair
 ## How we work
 
 1. **Ideas first.** Before writing app code, everyone drops thoughts into `ideas/`
-   as short `.md` or `.txt` files — one file per idea is fine. See `ideas/README.md`.
+   as short `.md` or `.txt` files — one file per idea is fine. Prefix the
+   filename with a timestamp (`YYYY-MM-DD-HHMM-short-title.md`) so lexical sort
+   gives us chronological order and later ideas visibly follow earlier ones.
+   See `ideas/README.md`.
 2. **Synthesise.** We read each other's ideas, pick a shape for v0, agree the
    JSON form schema, and split the work.
 3. **Iterate.** Ship the thinnest vertical slice first (one applicant can create an
