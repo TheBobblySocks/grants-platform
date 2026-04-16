@@ -555,6 +555,12 @@ it and update every consumer in the same commit.
 - Don't test framework code (that Flask routes work, that SQLAlchemy
   saves). Test *our* logic: scoring math, eligibility rules, form
   validation, status transitions.
+- **Don't run the full test suite over-eagerly.** It's slow and burns time
+  during development. Run only the tests relevant to what you just changed
+  (`pytest tests/test_<module>.py` or `pytest -k <pattern>`) while iterating.
+  Reserve a full `pytest` run for the pre-commit / pre-PR check described
+  in section 11 — not after every edit, not as a "just to be safe" sweep,
+  and not when only docs/config/JSON unrelated to test paths changed.
 
 ### 9. Commits, branches, PRs
 
