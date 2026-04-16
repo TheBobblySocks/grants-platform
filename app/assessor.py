@@ -39,14 +39,14 @@ from werkzeug.security import generate_password_hash
 from wtforms import PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import EqualTo, InputRequired, Length, Regexp, ValidationError
 
-from app.auth import assessor_required
+from app.audit import audit_log
+from app.auth import admin_required, assessor_required
 from app.extensions import db
 from app.models import (
     Application,
     ApplicationStatus,
     Assessment,
     AssessmentRecommendation,
-    Organisation,
     User,
     UserRole,
 )
@@ -67,6 +67,11 @@ bp = Blueprint("assessor", __name__, url_prefix="/assess")
 _EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 _EMAIL_MESSAGE = "Enter an email address in the correct format, like name@example.com"
 _PASSWORD_MIN_LENGTH = 10
+_PASSWORD_COMPLEXITY_REGEX = r"(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9])"
+_PASSWORD_COMPLEXITY_MESSAGE = (
+    "Password must contain at least one uppercase letter, one lowercase letter, "
+    "one number, and one symbol"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -103,6 +108,7 @@ class CreateAssessorForm(FlaskForm):
             InputRequired(message="Enter a password"),
             Length(min=_PASSWORD_MIN_LENGTH, max=128,
                    message=f"Password must be at least {_PASSWORD_MIN_LENGTH} characters"),
+            Regexp(_PASSWORD_COMPLEXITY_REGEX, message=_PASSWORD_COMPLEXITY_MESSAGE),
         ],
     )
     confirm_password = PasswordField(
@@ -177,6 +183,8 @@ class EditUserForm(FlaskForm):
             raise ValidationError("An account with this email already exists")
 
     def validate_new_password(self, field: PasswordField) -> None:
+        import re
+
         value = field.data or ""
         if not value:
             return
@@ -186,6 +194,8 @@ class EditUserForm(FlaskForm):
             )
         if len(value) > 128:
             raise ValidationError("Password must be 128 characters or fewer")
+        if not re.search(_PASSWORD_COMPLEXITY_REGEX, value):
+            raise ValidationError(_PASSWORD_COMPLEXITY_MESSAGE)
 
 
 # ---------------------------------------------------------------------------
@@ -303,9 +313,7 @@ def _notify_applicant(
     )
 
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = "[{}] Your {} application outcome".format(
-        rec_label, application.grant.name
-    )
+    msg["Subject"] = f"[{rec_label}] Your {application.grant.name} application outcome"
     msg["From"] = smtp_from
     msg["To"] = recipient
 
@@ -482,6 +490,13 @@ def save_score(app_id: int):
         assessment.recommendation = AssessmentRecommendation.REJECT
 
     db.session.commit()
+    audit_log(
+        "SCORES_SAVED",
+        user_id=current_user.id,
+        application_id=app_id,
+        weighted_total=weighted_total,
+        auto_rejected=auto_rejected,
+    )
     flash("Scores saved.", "success")
     return _redirect_to_detail(app_id)
 
@@ -634,6 +649,13 @@ def record_decision(app_id: int):
     assessment.completed_at = datetime.now(UTC)
 
     db.session.commit()
+    audit_log(
+        "DECISION_RECORDED",
+        user_id=current_user.id,
+        application_id=app_id,
+        recommendation=recommendation.value,
+        new_status=application.status.value,
+    )
     _notify_applicant(application, recommendation, decision_notes)
 
     flash("Decision recorded and applicant notified.", "success")
@@ -838,7 +860,7 @@ def generate_monitoring(app_id: int):
 @bp.post("/<int:app_id>/run-ai")
 @assessor_required
 def trigger_ai(app_id: int):
-    application = _get_application_or_404(app_id)
+    _get_application_or_404(app_id)
     form = _CsrfForm()
     if not form.validate_on_submit():
         abort(400)
@@ -891,7 +913,7 @@ def allocation():
 
 
 @bp.get("/users")
-@assessor_required
+@admin_required
 def list_users():
     users = db.session.execute(
         select(User).where(
@@ -903,7 +925,7 @@ def list_users():
 
 
 @bp.route("/users/new", methods=["GET", "POST"])
-@assessor_required
+@admin_required
 def create_user():
     form = CreateAssessorForm()
     if form.validate_on_submit():
@@ -915,13 +937,14 @@ def create_user():
         )
         db.session.add(user)
         db.session.commit()
-        flash("Account created for {}.".format(email), "success")
+        audit_log("USER_CREATED", user_id=current_user.id, target_email=email, target_role=UserRole(form.role.data).value)
+        flash(f"Account created for {email}.", "success")
         return redirect(url_for("assessor.list_users"))
     return render_template("assessor/create_user.html", form=form)
 
 
 @bp.route("/users/<int:user_id>/edit", methods=["GET", "POST"])
-@assessor_required
+@admin_required
 def edit_user(user_id: int):
     user = db.session.get(User, user_id)
     # Only assessor/admin accounts are managed from this surface -- the
@@ -955,6 +978,7 @@ def edit_user(user_id: int):
         if form.new_password.data:
             user.password_hash = generate_password_hash(form.new_password.data)
         db.session.commit()
+        audit_log("USER_UPDATED", user_id=current_user.id, target_id=user.id, target_email=new_email, target_role=new_role.value, password_changed=bool(form.new_password.data))
         flash(f"Account updated for {new_email}.", "success")
         return redirect(url_for("assessor.list_users"))
 
