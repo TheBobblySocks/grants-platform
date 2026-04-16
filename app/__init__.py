@@ -52,10 +52,11 @@ def create_app(config_class: str | type = "config.Config") -> Flask:
     _register_error_handlers(app)
     _register_cli(app)
 
-    # Auto-seed in dev so `flask run` boots straight into a usable DB. Tests
-    # manage their own fixtures, so skip when TESTING is set.
+    # Auto-seed on boot so `flask run` / gunicorn come up with a usable DB.
+    # Tests manage their own fixtures; the check is also a no-op once the
+    # grants table is populated, so dev-server reloads stay quiet.
     if not app.config.get("TESTING"):
-        _register_auto_seed(app)
+        _auto_seed(app)
 
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 
@@ -115,22 +116,30 @@ def _register_cli(app: Flask) -> None:
         seed_into_session(reset=True)
 
 
-def _register_auto_seed(app: Flask) -> None:
-    """Seed grants + forms + demo users on the first request.
+def _auto_seed(app: Flask) -> None:
+    """Seed grants + forms + demo users on boot when the DB is empty.
 
-    ``seed_into_session`` is idempotent (upserts, `db.create_all()` is a no-op
-    on existing tables) so running it once per process on boot is safe. We use
-    a ``before_request`` hook rather than seeding inline in ``create_app`` so
-    CLI entry points (``flask reset-db``, ``python seed.py``) don't trigger a
-    second seed pass on top of their own.
+    Gated on the grants table being missing or empty so that hot reloads of
+    the dev server (and additional ``create_app`` calls from ``seed.py`` or
+    ``flask reset-db``) stay silent instead of re-printing the seed banner.
     """
-    state = {"seeded": False}
+    from sqlalchemy import select
+    from sqlalchemy.exc import OperationalError
 
-    @app.before_request
-    def _auto_seed() -> None:
-        if state["seeded"]:
+    from app.models import Grant
+
+    with app.app_context():
+        try:
+            already_seeded = (
+                db.session.execute(select(Grant).limit(1)).first() is not None
+            )
+        except OperationalError:
+            # Tables don't exist yet -- treat as a fresh DB and seed.
+            already_seeded = False
+
+        if already_seeded:
             return
-        state["seeded"] = True
+
         from seed import seed_into_session
 
         seed_into_session(reset=False)

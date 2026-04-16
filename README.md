@@ -166,7 +166,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
 # Start the dev server on http://127.0.0.1:5000
-# The first request auto-seeds EHCF grant + forms + demo users into SQLite.
+# The app auto-seeds EHCF grant + forms + demo users on boot if the DB is empty.
 uv run flask --app wsgi run --debug
 
 # Run the tests
