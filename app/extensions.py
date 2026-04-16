@@ -17,4 +17,10 @@ login_manager = LoginManager()
 csrf = CSRFProtect()
 # In-memory store is fine for a single-process prototype; switch ``storage_uri``
 # to redis/memcached before running multiple gunicorn workers in production.
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+# Explicit ``memory://`` acknowledges the choice so flask-limiter doesn't emit
+# a UserWarning on every app startup.
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],
+    storage_uri="memory://",
+)
